@@ -6,8 +6,8 @@ from kubernetes import client
 from kubernetes.client import Configuration, ApiClient
 from termcolor import colored
 
-from core.run_context import run
-from core.base_configuration import BaseConfiguration
+from api.core.run_context import run
+from api.core.base_configuration import BaseConfiguration
 
 
 class DevClusterConfiguration(BaseConfiguration):
