@@ -12,8 +12,10 @@ class InstallLonghorn(BaseConfiguration):
         ]
 
     def add_longhorn_helm_repo(self, log_prefix: str):
-        self.log(log_prefix, colored("Adding Longhorn Helm repo", "blue"), logging.INFO)
+        self.log(log_prefix, "Adding Longhorn Helm repo", logging.INFO)
         self.run_process(["helm", "repo", "add", "longhorn", "https://charts.longhorn.io"],
                          log_prefix=log_prefix)
     
-    
+    def update_helm_repo(self, log_prefix: str):
+        self.log(log_prefix, colored("Updating Helm repo", "blue"), logging.INFO)
+        self.run_process(["helm", "repo", "update"], log_prefix=log_prefix)
