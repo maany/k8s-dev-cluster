@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 from termcolor import colored
-from kubernetes import client, utils
+from kubernetes import client, utils, watch
 from kubernetes.client import Configuration, ApiClient
 
 import logging
@@ -72,6 +72,13 @@ class BaseConfiguration:
             sys.exit(1)
         return return_code, out, err
 
+    def watch_namespace_events(self, namespace: str, log_prefix: str):
+        event_watcher = watch.Watch()
+        self.log(log_prefix, colored(f"Watching namespace {namespace} events", "grey"), logging.INFO)
+        self.log(log_prefix, colored("Press Ctrl+C to stop watching", "red"), logging.WARN)
+        for event in event_watcher.stream(self.v1.list_namespaced_event, namespace=namespace):
+            self.log(log_prefix, event["object"].message, logging.INFO)
+    
     def is_gh_repo_private(self, gh_user, gh_repo: str) -> bool:
         r = requests.get(f"https://api.github.com/repos/{gh_user}/{gh_repo}")
         return r.status_code == 404
