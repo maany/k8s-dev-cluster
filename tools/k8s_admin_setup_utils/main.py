@@ -6,13 +6,12 @@ from k8s_admin_setup_utils import longhorn
 from k8s_admin_setup_utils import dev_cluster
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 @click.group()
 @click.option("--verbosity", "-v", default=1, count=True, help="Verbosity level")
 def cli(verbosity):
-    print("Setting ****** verbosity to {}".format(verbosity))
     config_root_logger(verbosity=verbosity)
     print(ASCII_ART)
 
