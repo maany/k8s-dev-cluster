@@ -1,10 +1,9 @@
-from email.policy import default
 import click
 import logging
 from api.core.root_logger import config_root_logger
-from api.init_cluster import DevClusterConfiguration
-from api.core.run_context import kube_proxy
 from api.core.constants import ASCII_ART
+from k8s_admin_setup_utils import longhorn
+from k8s_admin_setup_utils import dev_cluster
 
 
 logger = logging.getLogger(__name__)
@@ -29,12 +28,5 @@ def cli(ctx, verbose, kubeconfig):
     print(ASCII_ART)
 
 
-@cli.command()
-@click.pass_obj
-def init(ctx):
-    """
-    Initialize the development cluster on Vagrant VMs. This command will
-    restart coredns and metrics server pods.
-    """
-    with kube_proxy(ctx.kubeconfig):
-        DevClusterConfiguration(kubeconfig=ctx.kubeconfig).run()
+cli.add_command(dev_cluster.cli, name="dev-cluster")
+cli.add_command(longhorn.cli, name="longhorn")
