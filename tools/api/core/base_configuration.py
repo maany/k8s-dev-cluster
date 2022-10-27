@@ -7,6 +7,10 @@ from termcolor import colored
 from kubernetes import client, utils
 from kubernetes.client import Configuration, ApiClient
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class BaseConfiguration:
     def __init__(self, **kwargs) -> None:
@@ -18,8 +22,12 @@ class BaseConfiguration:
 
         self.steps = []
 
-    def log(self, log_prefix: str, *message):
-        print(log_prefix, *message)
+    def log(self, log_prefix: str, message, log_level = None):
+        if log_level == None:
+            print(log_prefix, message)
+        else:
+            logger.log(log_level, f"{log_prefix} {message}")
+
 
     def log_k8s_api_error(self, log_prefix: str, err: utils.FailToCreateError):
         self.log(log_prefix, colored(

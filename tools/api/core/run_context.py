@@ -1,8 +1,13 @@
-from contextlib import contextmanager
 import typing
 import subprocess
 import sys
 import io
+import os
+from contextlib import contextmanager
+
+from kubernetes import client
+from kubernetes.client import Configuration, ApiClient
+
 
 @contextmanager
 def run(
@@ -33,3 +38,29 @@ def run(
 
     if return_stdout:
         return proc.stdout
+
+@contextmanager
+def kube_proxy(kubeconfig):
+    with run(
+        "kubectl",
+        "proxy",
+        "--port=8080",
+        env={"KUBECONFIG": kubeconfig, "PATH": os.environ["PATH"]},
+    ) as proc:
+        print("Kubectl proxy started")
+        print("Waiting for kubectl proxy to start")
+        while True:
+            try:
+                kubeconfig = Configuration()
+                kubeconfig.host = "http://127.0.0.1:8080"
+                api_client = ApiClient(configuration=kubeconfig)
+                kubectl = client.CoreV1Api(api_client=api_client)
+                kubectl.list_node()
+                print("Kubectl proxy is ready")
+                break
+            except Exception as e:
+                print("Kubectl proxy is not ready yet")
+                pass
+        yield proc
+        proc.terminate()
+        proc.kill()
