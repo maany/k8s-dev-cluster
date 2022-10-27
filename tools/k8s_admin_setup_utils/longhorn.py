@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from api.longhorn.longhorn import InstallLonghorn, WatchLonghornEvents
+from api.longhorn.longhorn import InstallLonghorn, WatchLonghornEvents, ExposeLonghornUI
 from api.core.run_context import kube_proxy
 
 longhorn_values_default_path = Path(__file__).parent.parent / "config" / "longhorn-values.yaml"
@@ -49,3 +49,13 @@ def watch_events(ctx):
         WatchLonghornEvents(
             kubeconfig=ctx.kubeconfig
         ).run()
+
+@cli.command()
+@click.pass_obj
+@click.option("--port", default=8000, help="Port to expose longhorn UI")
+def expose(ctx, port):
+    """
+    Expose Longhorn UI on a port ( Default: 8000 )
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        ExposeLonghornUI(ctx.kubeconfig, port).run()

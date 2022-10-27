@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from api.core.base_configuration import BaseConfiguration
 from termcolor import colored
 
@@ -46,5 +45,23 @@ class WatchLonghornEvents(BaseConfiguration):
         self.log(log_prefix, colored("Watching Longhorn events", "blue"), logging.INFO)
         self.watch_namespace_events(
             namespace="longhorn-system",
+            log_prefix=log_prefix
+        )
+
+class ExposeLonghornUI(BaseConfiguration):
+    def __init__(self, kubeconfig: str, port: int):
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.port = port
+        self.steps = [
+            self.expose_longhorn_ui,
+        ]
+
+    def expose_longhorn_ui(self, log_prefix: str):
+        self.log(log_prefix, colored("Exposing Longhorn UI", "blue"), logging.INFO)
+        self.run_process([
+            "kubectl", "port-forward", "svc/longhorn-frontend", f"{self.port}:80", 
+            "-n", "longhorn-system"
+            ],
             log_prefix=log_prefix
         )
