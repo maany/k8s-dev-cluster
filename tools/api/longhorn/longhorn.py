@@ -1,7 +1,9 @@
-from api.core.base_configuration import BaseConfiguration
 import logging
 
-class LonghornConfiguration(BaseConfiguration):
+from api.core.base_configuration import BaseConfiguration
+from termcolor import colored
+
+class InstallLonghorn(BaseConfiguration):
     def __init__(self, kubeconfig: str):
         super().__init__()
         self.kubeconfig = kubeconfig
@@ -10,6 +12,8 @@ class LonghornConfiguration(BaseConfiguration):
         ]
 
     def add_longhorn_helm_repo(self, log_prefix: str):
-        self.log(log_prefix, "Adding Longhorn Helm repo", logging.INFO)
+        self.log(log_prefix, colored("Adding Longhorn Helm repo", "blue"), logging.INFO)
         self.run_process(["helm", "repo", "add", "longhorn", "https://charts.longhorn.io"],
                          log_prefix=log_prefix)
+    
+    
