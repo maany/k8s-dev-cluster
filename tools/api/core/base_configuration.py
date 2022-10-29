@@ -83,3 +83,8 @@ class BaseConfiguration:
         r = requests.get(f"https://api.github.com/repos/{gh_user}/{gh_repo}")
         return r.status_code == 404
 
+    def create_from_dict(self, log_prefix: str, namespace: str, resource_dict: dict):
+        try:
+            utils.create_from_dict(self.api_client, resource_dict, namespace=namespace)
+        except utils.FailToCreateError as err:
+            self.log_k8s_api_error(log_prefix, err)
