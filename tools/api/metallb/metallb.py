@@ -74,7 +74,7 @@ class InstallCustomResources(BaseConfiguration):
 
         self.ip_address_pool = {
             "apiVersion": "metallb.io/v1beta1",
-            "kind": "AddressPool",
+            "kind": "IPAddressPool",
             "metadata": {
                 "name": f"{self.pool_name}-pool",
                 "namespace": "metallb-system"

@@ -1,7 +1,10 @@
-import click
-from api.dev_cluster import DevClusterConfiguration
-from api.core.run_context import kube_proxy
 import os
+
+import click
+from click_params import IPV4_ADDRESS
+
+from api.dev_cluster import DevClusterConfiguration, InstallCilium
+from api.core.run_context import kube_proxy
 
 @click.group()
 @click.option("--kubeconfig", 
@@ -18,10 +21,31 @@ def cli(ctx, kubeconfig):
 
 @cli.command()
 @click.pass_obj
-def init(ctx):
+def reload(ctx):
     """
     Restart coredns and metrics server
     """
     with kube_proxy(ctx.kubeconfig):
         DevClusterConfiguration(kubeconfig=ctx.kubeconfig).run()
 
+
+@cli.group()
+@click.pass_obj
+def cilium(ctx):
+    """
+    Configure cilium
+    """
+    pass
+
+@cilium.command()
+@click.option("--kubemaster-ip",
+    default="172.16.16.10",
+    type=IPV4_ADDRESS,
+    help="IP address of the kubemaster")
+@click.pass_obj
+def install(ctx, kubemaster_ip):
+    """
+    Install cilium
+    """
+    with kube_proxy(ctx.kubeconfig):
+        InstallCilium(kubeconfig=ctx.kubeconfig, kubemaster_ip=kubemaster_ip).run()
