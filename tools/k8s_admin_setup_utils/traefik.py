@@ -4,9 +4,9 @@ import os
 import click
 
 from api.traefik.traefik import (
-    InstallTraefikHelmChart, InstallTraefikDefaultHeaders,
+    InstallTraefikHelmChart, InstallTraefikDefaultHeaders, InstallTraefikDashboard,
     WatchTraefikEvents, GetTraefikLoadBalancerIP,
-    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders
+    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders,
 )
 from api.core.run_context import kube_proxy
 
@@ -64,7 +64,7 @@ def helm_chart(ctx, traefik_values):
 @click.pass_obj
 def default_headers(ctx, traefik_default_headers):
     """
-    Install Traefik Middlewares
+    Install Traefik Default Headers
     """
     with kube_proxy(ctx.kubeconfig) as k:
         InstallTraefikDefaultHeaders(
@@ -72,6 +72,20 @@ def default_headers(ctx, traefik_default_headers):
             traefik_default_headers=traefik_default_headers
         ).run()
 
+@install.command()
+@click.option("--username", "-u", required=True, help="Username for Traefik Dashboard")
+@click.password_option(help="Password for Traefik Dashboard")
+@click.pass_obj
+def dashboard(ctx, username, password):
+    """
+    Install Dashboard
+    """
+    with kube_proxy(ctx.kubeconfig) as k:
+        InstallTraefikDashboard(
+            kubeconfig=ctx.kubeconfig,
+            dashboard_username=username,
+            dashboard_password=password
+        ).run()
 
 @cli.command()
 @click.pass_obj

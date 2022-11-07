@@ -1,6 +1,9 @@
 import logging
+import base64
+import tempfile
+import json
 
-
+from passlib.hash import apr_md5_crypt
 from termcolor import colored
 
 from api.core.base_configuration import BaseConfiguration
@@ -65,6 +68,55 @@ class InstallTraefikDefaultHeaders(BaseConfiguration):
         ],
             log_prefix=log_prefix
         )
+
+class InstallTraefikDashboard(BaseConfiguration):
+    def __init__(self, kubeconfig: str, dashboard_username: str, dashboard_password: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.dashboard_username = dashboard_username
+        self.dashboard_password = dashboard_password
+        self.hashed_passwd = self.hash_password(self.dashboard_password)
+        self.dashboard_user = f"{self.dashboard_username}:{self.hashed_passwd}"
+        self.dashboard_user_b64 = base64.b64encode(
+            self.dashboard_user.encode('utf-8')
+        ).decode("utf-8")
+        
+        self.dashboard_secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {
+                "name": "traefik-dashboard-auth",
+                "namespace": "traefik"
+            },
+            "type": "Opaque",
+            "data": {
+                "users": self.dashboard_user_b64
+            }
+
+
+        }
+        self.steps = [
+            self.install_traefik_dashboard_secret,
+        ]
+
+    def hash_password(self, password: str):
+        return apr_md5_crypt.hash(password)
+
+    def install_traefik_dashboard_secret(self, log_prefix: str):
+        self.log(log_prefix, colored(f"htpasswd entry with apr1 hash of password: {self.dashboard_user}", "blue"), logging.INFO)
+        self.log(log_prefix, f"Secret: {json.dumps(self.dashboard_secret, indent=4)}", logging.INFO)
+        self.log(log_prefix, colored(
+            "Installing Traefik dashboard secret", "blue"), logging.INFO)
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            tmp.write(json.dumps(self.dashboard_secret, indent=4))
+            tmp.close()
+            self.run_process([
+                "kubectl", "apply", "-f", tmp.name,
+            ],
+                log_prefix=log_prefix
+            )
+
 
 class WatchTraefikEvents(BaseConfiguration):
     def __init__(self, kubeconfig: str):
