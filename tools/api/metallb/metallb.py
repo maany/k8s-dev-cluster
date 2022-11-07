@@ -1,4 +1,5 @@
 import logging
+import tempfile
 import time
 import json
 from termcolor import colored
@@ -106,15 +107,26 @@ class InstallCustomResources(BaseConfiguration):
 
         self.log(log_prefix, colored(f"Creating MetalLB AddressPool", "yellow"), logging.INFO)
         self.log(log_prefix, colored(f"AddressPool: {self.ip_address_pool}", "yellow"), logging.INFO)
-        
-        self.run_process([ "echo", '"', f"{json.dumps(self.ip_address_pool)}", '"', " | ", "kubectl", "apply", "-f", "-"],
-                            log_prefix=log_prefix)
+        with tempfile.NamedTemporaryFile(mode="w") as f:
+            f.write(json.dumps(self.ip_address_pool))
+            f.flush()
+            self.run_process([
+                "kubectl", "apply", "-f", f.name
+            ],
+                log_prefix=log_prefix
+            )
 
         self.log(log_prefix, colored(f"Creating MetalLB L2Advertisement", "yellow"), logging.INFO)
         self.log(log_prefix, colored(f"L2Advertisement: {self.l2_advertisement}", "yellow"), logging.INFO)
+        with tempfile.NamedTemporaryFile(mode="w") as f:
+            f.write(json.dumps(self.l2_advertisement))
+            f.flush()
+            self.run_process([
+                "kubectl", "apply", "-f", f.name
+            ],
+                log_prefix=log_prefix
+            )
 
-        self.run_process(["echo", '"', f"{json.dumps(self.l2_advertisement)}", '"', " | ", "kubectl", "apply", "-f", "-"],
-                            log_prefix=log_prefix)
 
 
 class UninstallMetalLb(BaseConfiguration):
