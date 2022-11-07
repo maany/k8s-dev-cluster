@@ -4,13 +4,17 @@ import os
 import click
 
 from api.traefik.traefik import (
-    InstallTraefikHelmChart, WatchTraefikEvents, GetTraefikLoadBalancerIP,
-    UninstallTraefikHelmChart
+    InstallTraefikHelmChart, InstallTraefikDefaultHeaders,
+    WatchTraefikEvents, GetTraefikLoadBalancerIP,
+    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders
 )
 from api.core.run_context import kube_proxy
 
 traefik_values_default_path = Path(
     __file__).parent.parent / "config" / "traefik-values.yaml"
+
+traefik_default_headers_default_path = Path(
+    __file__).parent.parent / "config" / "traefik-default-headers.yaml"
 
 
 @click.group()
@@ -50,6 +54,23 @@ def helm_chart(ctx, traefik_values):
         kubeconfig=ctx.kubeconfig,
         traefik_values=traefik_values
     ).run()
+
+
+@install.command()
+@click.option("--traefik-default-headers",
+                default=str(traefik_default_headers_default_path),
+                type=click.Path(exists=True),
+                help="Path to Traefik Defautl Headers file")
+@click.pass_obj
+def default_headers(ctx, traefik_default_headers):
+    """
+    Install Traefik Middlewares
+    """
+    with kube_proxy(ctx.kubeconfig) as k:
+        InstallTraefikDefaultHeaders(
+            kubeconfig=ctx.kubeconfig,
+            traefik_default_headers=traefik_default_headers
+        ).run()
 
 
 @cli.command()
@@ -94,4 +115,20 @@ def helm_chart(ctx):
     with kube_proxy(kubeconfig=ctx.kubeconfig):
         UninstallTraefikHelmChart(
             kubeconfig=ctx.kubeconfig
+        ).run()
+
+@uninstall.command()
+@click.option("--traefik-default_headers",
+                default=str(traefik_default_headers_default_path),
+                type=click.Path(exists=True),
+                help="Path to Traefik default_headers file")
+@click.pass_obj
+def default_headers(ctx, traefik_default_headers):
+    """
+    Uninstall Traefik default_headerss
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        UninstallTraefikDefaultHeaders(
+            kubeconfig=ctx.kubeconfig,
+            traefik_default_headers=traefik_default_headers
         ).run()

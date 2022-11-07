@@ -47,6 +47,25 @@ class InstallTraefikHelmChart(BaseConfiguration):
             log_prefix=log_prefix
         )
 
+class InstallTraefikDefaultHeaders(BaseConfiguration):
+    def __init__(self, kubeconfig: str, traefik_default_headers: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.traefik_default_headers = traefik_default_headers
+
+        self.steps = [
+            self.install_traefik_default_headers,
+        ]
+
+    def install_traefik_default_headers(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Installing Traefik default headers", "blue"), logging.INFO)
+        self.run_process([
+            "kubectl", "apply", "-f", self.traefik_default_headers,
+        ],
+            log_prefix=log_prefix
+        )
+
 class WatchTraefikEvents(BaseConfiguration):
     def __init__(self, kubeconfig: str):
         super().__init__()
@@ -98,6 +117,25 @@ class UninstallTraefikHelmChart(BaseConfiguration):
             "Uninstalling Traefik Helm chart", "blue"), logging.INFO)
         self.run_process([
             "helm", "uninstall", "traefik", "-n", "traefik"
+        ],
+            log_prefix=log_prefix
+        )
+
+class UninstallTraefikDefaultHeaders(BaseConfiguration):
+    def __init__(self, kubeconfig: str, traefik_default_headers: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.traefik_default_headers = traefik_default_headers
+
+        self.steps = [
+            self.uninstall_traefik_default_headers,
+        ]
+
+    def uninstall_traefik_default_headers(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Uninstalling Traefik default headers", "blue"), logging.INFO)
+        self.run_process([
+            "kubectl", "delete", "-f", self.traefik_default_headers,
         ],
             log_prefix=log_prefix
         )
