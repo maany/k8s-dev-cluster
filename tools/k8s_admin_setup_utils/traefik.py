@@ -3,11 +3,15 @@ import os
 
 import click
 
-from api.traefik.traefik import InstallTraefikHelmChart, WatchTraefikEvents
+from api.traefik.traefik import (
+    InstallTraefikHelmChart, WatchTraefikEvents, GetTraefikLoadBalancerIP,
+    UninstallTraefikHelmChart
+)
 from api.core.run_context import kube_proxy
 
 traefik_values_default_path = Path(
     __file__).parent.parent / "config" / "traefik-values.yaml"
+
 
 @click.group()
 @click.option("--kubeconfig",
@@ -31,11 +35,12 @@ def install(ctx):
     """
     pass
 
+
 @install.command()
 @click.option("--traefik-values",
-                default=str(traefik_values_default_path),
-                type=click.Path(exists=True),
-                help="Path to Traefik Helm values file")
+              default=str(traefik_values_default_path),
+              type=click.Path(exists=True),
+              help="Path to Traefik Helm values file")
 @click.pass_obj
 def helm_chart(ctx, traefik_values):
     """
@@ -46,6 +51,7 @@ def helm_chart(ctx, traefik_values):
         traefik_values=traefik_values
     ).run()
 
+
 @cli.command()
 @click.pass_obj
 def watch(ctx):
@@ -54,5 +60,38 @@ def watch(ctx):
     """
     with kube_proxy(kubeconfig=ctx.kubeconfig):
         WatchTraefikEvents(
+            kubeconfig=ctx.kubeconfig
+        ).run()
+
+
+@cli.command()
+@click.pass_obj
+def loadbalancer_ip(ctx):
+    """
+    Get Traefik Load Balancer IP
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        GetTraefikLoadBalancerIP(
+            kubeconfig=ctx.kubeconfig
+        ).run()
+
+
+@cli.group
+@click.pass_obj
+def uninstall(ctx):
+    """
+    Uninstall Traefik
+    """
+    pass
+
+
+@uninstall.command()
+@click.pass_obj
+def helm_chart(ctx):
+    """
+    Uninstall Traefik Helm Chart
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        UninstallTraefikHelmChart(
             kubeconfig=ctx.kubeconfig
         ).run()

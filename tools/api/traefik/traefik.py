@@ -62,3 +62,42 @@ class WatchTraefikEvents(BaseConfiguration):
             namespace="traefik",
             log_prefix=log_prefix
         )
+
+class GetTraefikLoadBalancerIP(BaseConfiguration):
+    def __init__(self, kubeconfig: str, ) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+
+        self.steps = [
+            self.get_traefik_loadbalancer_ip,
+        ]
+
+    def get_traefik_loadbalancer_ip(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Getting Traefik LoadBalancer IP", "blue"), logging.INFO)
+        rcode, out, err = self.run_process([
+            "kubectl", "get", "service", "traefik", "-n", "traefik",
+            "-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+        ],
+            log_prefix=log_prefix
+        )
+        self.log("Traefik LoadBalancer IP", colored(out, "green", "on_yellow"), logging.INFO)
+
+
+class UninstallTraefikHelmChart(BaseConfiguration):
+    def __init__(self, kubeconfig: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+
+        self.steps = [
+            self.uninstall_traefik_helm_chart,
+        ]
+
+    def uninstall_traefik_helm_chart(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Uninstalling Traefik Helm chart", "blue"), logging.INFO)
+        self.run_process([
+            "helm", "uninstall", "traefik", "-n", "traefik"
+        ],
+            log_prefix=log_prefix
+        )
