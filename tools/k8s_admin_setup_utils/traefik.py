@@ -6,7 +6,7 @@ import click
 from api.traefik.traefik import (
     InstallTraefikHelmChart, InstallTraefikDefaultHeaders, InstallTraefikDashboard,
     WatchTraefikEvents, GetTraefikLoadBalancerIP,
-    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders,
+    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders, UninstallTraefikNamespace
 )
 from api.core.run_context import kube_proxy
 
@@ -147,4 +147,15 @@ def default_headers(ctx, traefik_default_headers):
         UninstallTraefikDefaultHeaders(
             kubeconfig=ctx.kubeconfig,
             traefik_default_headers=traefik_default_headers
+        ).run()
+
+@uninstall.command()
+@click.pass_obj
+def namespace(ctx):
+    """
+    Uninstall Dashboard, Secrets, IngressRoutes, Middlewares, and Traefik Namespace
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        UninstallTraefikNamespace(
+            kubeconfig=ctx.kubeconfig
         ).run()

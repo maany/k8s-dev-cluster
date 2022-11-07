@@ -118,7 +118,10 @@ class InstallTraefikDashboard(BaseConfiguration):
             "kind": "IngressRoute",
             "metadata": {
                 "name": "traefik-dashboard",
-                "namespace": "traefik"
+                "namespace": "traefik",
+                "annotations": {
+                    "kubernetes.io/ingress.class": "traefik-external"
+                }
             },
             "spec": {
                 "entryPoints": [
@@ -137,7 +140,7 @@ class InstallTraefikDashboard(BaseConfiguration):
                         "services": [
                             {
                                 "name": "api@internal",
-                                "namespace": "TraefikService",
+                                "kind": "TraefikService",
                             }
                         ]
                     }
@@ -287,6 +290,24 @@ class UninstallTraefikDefaultHeaders(BaseConfiguration):
             "Uninstalling Traefik default headers", "blue"), logging.INFO)
         self.run_process([
             "kubectl", "delete", "-f", self.traefik_default_headers,
+        ],
+            log_prefix=log_prefix
+        )
+
+class UninstallTraefikNamespace(BaseConfiguration):
+    def __init__(self, kubeconfig: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+
+        self.steps = [
+            self.uninstall_traefik_namespace,
+        ]
+
+    def uninstall_traefik_namespace(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Uninstalling Traefik namespace", "blue"), logging.INFO)
+        self.run_process([
+            "kubectl", "delete", "namespace", "traefik",
         ],
             log_prefix=log_prefix
         )
