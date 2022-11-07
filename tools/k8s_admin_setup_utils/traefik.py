@@ -75,8 +75,9 @@ def default_headers(ctx, traefik_default_headers):
 @install.command()
 @click.option("--username", "-u", required=True, help="Username for Traefik Dashboard")
 @click.password_option(help="Password for Traefik Dashboard")
+@click.option("--hostname", "-h", default='traefik.local.devmaany.com', help="Hostname for Traefik Dashboard for Ingress + Certs")
 @click.pass_obj
-def dashboard(ctx, username, password):
+def dashboard(ctx, username, password, hostname):
     """
     Install Dashboard
     """
@@ -84,7 +85,8 @@ def dashboard(ctx, username, password):
         InstallTraefikDashboard(
             kubeconfig=ctx.kubeconfig,
             dashboard_username=username,
-            dashboard_password=password
+            dashboard_password=password,
+            hostname=hostname
         ).run()
 
 @cli.command()

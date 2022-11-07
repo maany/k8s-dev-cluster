@@ -5,6 +5,7 @@ import json
 
 from passlib.hash import apr_md5_crypt
 from termcolor import colored
+from python_hosts import Hosts, HostsEntry
 
 from api.core.base_configuration import BaseConfiguration
 
@@ -70,13 +71,15 @@ class InstallTraefikDefaultHeaders(BaseConfiguration):
         )
 
 class InstallTraefikDashboard(BaseConfiguration):
-    def __init__(self, kubeconfig: str, dashboard_username: str, dashboard_password: str) -> None:
+    def __init__(self, kubeconfig: str, dashboard_username: str, dashboard_password: str, hostname: str) -> None:
         super().__init__()
         self.kubeconfig = kubeconfig
         self.dashboard_username = dashboard_username
         self.dashboard_password = dashboard_password
         self.hashed_passwd = self.hash_password(self.dashboard_password)
         self.dashboard_user = f"{self.dashboard_username}:{self.hashed_passwd}"
+        self.loadbalancer_ip = self.get_dashboard_lb_ip()
+        self.hostname = hostname
         self.dashboard_user_b64 = base64.b64encode(
             self.dashboard_user.encode('utf-8')
         ).decode("utf-8")
@@ -95,12 +98,70 @@ class InstallTraefikDashboard(BaseConfiguration):
 
 
         }
+
+        self.dashboard_basic_auth_middleware = {
+            "apiVersion": "traefik.containo.us/v1alpha1",
+            "kind": "Middleware",
+            "metadata": {
+                "name": "traefik-dashboard-basicauth",
+                "namespace": "traefik"
+            },
+            "spec": {
+                "basicAuth": {
+                    "secret": "traefik-dashboard-auth"
+                }
+            }
+        }
+
+        self.traefik_ingress_route = {
+            "apiVersion": "traefik.containo.us/v1alpha1",
+            "kind": "IngressRoute",
+            "metadata": {
+                "name": "traefik-dashboard",
+                "namespace": "traefik"
+            },
+            "spec": {
+                "entryPoints": [
+                    "websecure"
+                ],
+                "routes": [
+                    {
+                        "kind": "Rule",
+                        "match": f"Host(`{hostname}`)",
+                        "middlewares": [
+                            {
+                                "name": "traefik-dashboard-basicauth",
+                                "namespace": "traefik"
+                            }
+                        ],
+                        "services": [
+                            {
+                                "name": "api@internal",
+                                "namespace": "TraefikService",
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+
         self.steps = [
             self.install_traefik_dashboard_secret,
+            self.install_traefik_dashboard_basic_auth_middleware,
+            self.install_traefik_dashboard_ingress_route,
+            self.add_dashboard_hostname_to_hosts_file,
         ]
 
     def hash_password(self, password: str):
         return apr_md5_crypt.hash(password)
+
+    def get_dashboard_lb_ip(self):
+        rcode, out, err = self.run_process([
+            "kubectl", "get", "service", "traefik", "-n", "traefik", "-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+        ],
+            log_prefix="InstallTraefikDashboard"
+        )
+        return out.split("'")[1]
 
     def install_traefik_dashboard_secret(self, log_prefix: str):
         self.log(log_prefix, colored(f"htpasswd entry with apr1 hash of password: {self.dashboard_user}", "blue"), logging.INFO)
@@ -117,6 +178,44 @@ class InstallTraefikDashboard(BaseConfiguration):
                 log_prefix=log_prefix
             )
 
+    def install_traefik_dashboard_basic_auth_middleware(self, log_prefix: str):
+        self.log(log_prefix, f"Middleware: {json.dumps(self.dashboard_basic_auth_middleware, indent=4)}", logging.INFO)
+        self.log(log_prefix, colored(
+            "Installing Traefik dashboard basic auth middleware", "blue"), logging.INFO)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            tmp.write(json.dumps(self.dashboard_basic_auth_middleware, indent=4))
+            tmp.close()
+            self.run_process([
+                "kubectl", "apply", "-f", tmp.name,
+            ],
+                log_prefix=log_prefix
+            )
+
+    def install_traefik_dashboard_ingress_route(self, log_prefix: str):
+        self.log(log_prefix, f"IngressRoute: {json.dumps(self.traefik_ingress_route, indent=4)}", logging.INFO)
+        self.log(log_prefix, colored(
+            "Installing Traefik dashboard ingress route", "blue"), logging.INFO)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            tmp.write(json.dumps(self.traefik_ingress_route, indent=4))
+            tmp.close()
+            self.run_process([
+                "kubectl", "apply", "-f", tmp.name,
+            ],
+                log_prefix=log_prefix
+            )
+
+    def add_dashboard_hostname_to_hosts_file(self, log_prefix: str):
+        hosts = Hosts()
+        if hosts.exists(names=[self.hostname]):
+            self.log(log_prefix, colored(
+                f"Hostname {self.hostname} already exists in /etc/hosts", "blue"), logging.INFO)
+            self.log(log_prefix, colored(f"Removing existing entry for {self.hostname}", "red"), logging.INFO)
+            hosts.remove_all_matching(name=self.hostname)
+        self.log(log_prefix, colored(f"Adding {self.hostname} -> {self.loadbalancer_ip} to /etc/hosts", "blue"), logging.INFO)
+        hosts.add([
+            HostsEntry(entry_type='ipv4', address=self.loadbalancer_ip, names=[self.hostname])
+            ])
+        hosts.write()
 
 class WatchTraefikEvents(BaseConfiguration):
     def __init__(self, kubeconfig: str):
