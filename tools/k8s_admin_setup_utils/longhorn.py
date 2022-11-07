@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from api.longhorn.longhorn import InstallLonghorn, WatchLonghornEvents, ExposeLonghornUI
+from api.longhorn.longhorn import InstallLonghorn, WatchLonghornEvents, ExposeLonghornUI, ExposeLonghornUIMetalLB
 from api.core.run_context import kube_proxy
 
 longhorn_values_default_path = Path(
@@ -16,7 +16,7 @@ longhorn_values_default_path = Path(
               type=click.Path(exists=True),
               help="Path to kubeconfig file")
 @click.pass_context
-def cli(context, kubeconfig, longhorn_values):
+def cli(context, kubeconfig):
     """
     Install or Configure Longhorn Storage on a Kubernetes Cluster
     """
@@ -25,11 +25,11 @@ def cli(context, kubeconfig, longhorn_values):
 
 
 @cli.command()
-@click.pass_obj
 @click.option("--longhorn-values",
               default=str(longhorn_values_default_path),
               type=click.Path(exists=True),
               help="Path to Longhorn Helm values file")
+@click.pass_obj
 def install(ctx, longhorn_values):
     """
     Install Longhorn
@@ -55,10 +55,13 @@ def watch_events(ctx):
 
 @cli.command()
 @click.pass_obj
-@click.option("--port", default=8000, help="Port to expose longhorn UI")
+@click.option("--port", help="Port to expose longhorn UI")
 def expose(ctx, port):
     """
-    Expose Longhorn UI on a port ( Default: 8000 )
+    Expose Longhorn UI on LoadBalancer. Specify --port to expose without LoadBalancer ( Default: 8000 ).
     """
     with kube_proxy(kubeconfig=ctx.kubeconfig):
-        ExposeLonghornUI(ctx.kubeconfig, port).run()
+        if port:
+            ExposeLonghornUI(ctx.kubeconfig, port).run()
+        else:
+            ExposeLonghornUIMetalLB(ctx.kubeconfig).run()

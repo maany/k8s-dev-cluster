@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 import os
 import sys
 import subprocess
@@ -88,3 +89,7 @@ class BaseConfiguration:
             utils.create_from_dict(self.api_client, resource_dict, namespace=namespace)
         except utils.FailToCreateError as err:
             self.log_k8s_api_error(log_prefix, err)
+
+    def wait_10s(self, log_prefix: str):
+        self.log(log_prefix, "Waiting 10s")
+        time.sleep(10)
