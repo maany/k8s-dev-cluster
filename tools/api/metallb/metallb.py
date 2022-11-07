@@ -105,8 +105,8 @@ class InstallCustomResources(BaseConfiguration):
         self.log(log_prefix, colored(
             "Creating MetalLB custom resources", "blue"), logging.INFO)
 
-        self.log(log_prefix, colored(f"Creating MetalLB AddressPool", "yellow"), logging.INFO)
-        self.log(log_prefix, colored(f"AddressPool: {self.ip_address_pool}", "yellow"), logging.INFO)
+        self.log(log_prefix, colored(f"Creating MetalLB IPAddressPool", "yellow"), logging.INFO)
+        self.log(log_prefix, colored(f"IPAddressPool: {self.ip_address_pool}", "yellow"), logging.INFO)
         with tempfile.NamedTemporaryFile(mode="w") as f:
             f.write(json.dumps(self.ip_address_pool))
             f.flush()
