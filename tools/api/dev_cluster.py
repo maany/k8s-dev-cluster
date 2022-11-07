@@ -111,3 +111,37 @@ class InstallCilium(BaseConfiguration):
             "kubectl", "rollout", "restart", "deployment/hubble-ui", "-n", "kube-system"
         ], log_prefix=log_prefix)
 
+
+class ExposeHubble(BaseConfiguration):
+    def __init__(self, kubeconfig) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+
+        self.steps = [
+            self.check_config,
+            self.expose_hubble_ui,
+            self.wait_10s,
+            self.get_loadbalancer_ip
+        ]
+
+    def check_config(self, log_prefix: str | None = None, **kwargs):
+        if self.kubeconfig is None:
+            self.log(self.__class__.__name__, colored(
+                "No kubeconfig provided", "red", attrs=["bold", "blink"]))
+            raise ValueError(
+                "No kubeconfig provided. Please provide a kubeconfig using the --kube-config flag")
+        self.env = {"KUBECONFIG": self.kubeconfig, "PATH": os.environ["PATH"]}
+
+    def expose_hubble_ui(self, log_prefix: str | None = None, **kwargs):
+        self.log(log_prefix, colored("Exposing hubble ui", "green"))
+        self.run_process([
+            "kubectl", "-n", "kube-system", "patch", "svc", "hubble-ui",
+            "-p", '{"spec": {"type": "LoadBalancer"}}'
+        ], log_prefix=log_prefix)
+
+    def get_loadbalancer_ip(self, log_prefix: str | None = None, **kwargs):
+        self.log(log_prefix, colored("Getting loadbalancer ip", "green"))
+        rcode, out, err = self.run_process([
+            "kubectl", "-n", "kube-system", "get", "svc", "hubble-ui", "-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+        ], log_prefix=log_prefix)
+        self.log(log_prefix, colored(f"Loadbalancer ip: {out}", "green", "on_yellow"))

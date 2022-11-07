@@ -3,7 +3,7 @@ import os
 import click
 from click_params import IPV4_ADDRESS
 
-from api.dev_cluster import DevClusterConfiguration, InstallCilium
+from api.dev_cluster import DevClusterConfiguration, InstallCilium, ExposeHubble
 from api.core.run_context import kube_proxy
 
 @click.group()
@@ -49,3 +49,13 @@ def install(ctx, kubemaster_ip):
     """
     with kube_proxy(ctx.kubeconfig):
         InstallCilium(kubeconfig=ctx.kubeconfig, kubemaster_ip=kubemaster_ip).run()
+
+
+@cilium.command()
+@click.pass_obj
+def expose(ctx):
+    """
+    Expose hubble on loadbalancer
+    """
+    with kube_proxy(ctx.kubeconfig):
+        ExposeHubble(kubeconfig=ctx.kubeconfig).run()
