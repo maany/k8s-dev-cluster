@@ -61,6 +61,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 ############################################################
 # Patch CoreDNS to use Cloudflare DNS instead of reolv.conf
 ############################################################
+# This is to avoid the issue of CoreDNS not being able to resolve the DNS names outside the cluster as resolv.conf seemed buggy
 kubectl -n kube-system patch cm coredns --type merge --patch-file /vagrant/manifests/coredns-patch.yaml
 
 ##########################

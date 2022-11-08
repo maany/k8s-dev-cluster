@@ -1,20 +1,25 @@
 
-# Vagrantfile and Scripts to Automate Kubernetes Setup using Kubeadm [Practice Environment for CKA/CKAD and CKS Exams]
+# Vagrantfile, Scripts and a Python CLI to Automate Kubernetes Setup using Kubeadm
+- Code for the Python CLI is under the `tools` directory
+- Scripts for configuring the guests created by Vagrant are in the `scripts` directory
 
-## Documentation
+# Documentation
 
-Current k8s version for CKA, CKAD and CKS exam: 1.24
+## What this does?
+This vagrant file can spin up the following types of VMs
+1. master: K8s Control Plane
+2. worker: Run business workloads
+3. storage: Tainted to run Longhorn
+4. infra: Tainted to run in-cluster utilities like Metallb, CertManager, Traefik, ...
 
-Refer this link for documentation: https://devopscube.com/kubernetes-cluster-vagrant/
+You can modify the number of each type of VMs (except master) that you would like to bring up.
 
-## 🚀 CKA, CKAD, CKS or KCNA Coupon Codes
-
-If you are preparing for CKA, CKAD, CKS, or KCNA exam, **save 35%** today using code **FEST35** at https://kube.promo/latest. It is a limited-time offer. Or Check out [Linux Foundation coupon](https://scriptcrunch.com/linux-foundation-coupon/) page for the latest voucher codes.
-
+No CNI plugin is installed. `Cilium` will be used as the CNI Network Plugin. It can be configured later using the CLI. 
+** This is since cilium requires all nodes in a k8s cluster to be available and we did not go the route of running a post processor in Vagrant.
 ## Prerequisites
 
 1. Working Vagrant setup
-2. 8 Gig + RAM workstation as the Vms use 3 vCPUS and 4+ GB RAM
+2. 16 Gig + RAM workstation with 8+ cores and 20GB+ storage
 
 ## For MAC/Linux Users
 
@@ -36,15 +41,12 @@ https://discuss.hashicorp.com/t/vagrant-2-2-18-osx-11-6-cannot-create-private-ne
 To provision the cluster, execute the following commands.
 
 ```shell
-git clone https://github.com/scriptcamp/vagrant-kubeadm-kubernetes.git
-cd vagrant-kubeadm-kubernetes
 vagrant up
 ```
 
 ## Set Kubeconfig file variable
 
 ```shell
-cd vagrant-kubeadm-kubernetes
 cd configs
 export KUBECONFIG=$(pwd)/config
 ```
@@ -52,23 +54,7 @@ export KUBECONFIG=$(pwd)/config
 or you can copy the config file to .kube directory.
 
 ```shell
-cp config ~/.kube/
-```
-
-## Kubernetes Dashboard URL
-
-```shell
-http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/overview?namespace=kubernetes-dashboard
-```
-
-## Kubernetes login token
-
-Vagrant up will create the admin user token and saves in the configs directory.
-
-```shell
-cd vagrant-kubeadm-kubernetes
-cd configs
-cat token
+cp configs/config ~/.kube/
 ```
 
 ## To shutdown the cluster,
@@ -89,3 +75,5 @@ vagrant up
 vagrant destroy -f
 ```
 
+## Further configutation with the CLI
+To provision the cluster with Metallb, Longhorn, Kube Prometheus Stack, Traefik, Certmanager, .. please follow the instructions [here](./tools/README.md)
