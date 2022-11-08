@@ -6,7 +6,7 @@ from k8s_admin_setup_utils import longhorn, metallb
 from k8s_admin_setup_utils import dev_cluster
 from k8s_admin_setup_utils import traefik
 from k8s_admin_setup_utils import cert_manager
-from k8s_admin_setup_utils import metrics
+from k8s_admin_setup_utils import monitoring
 
 
 logger = logging.getLogger(__name__)
@@ -24,4 +24,4 @@ cli.add_command(longhorn.cli, name="longhorn")
 cli.add_command(metallb.cli, name="metallb")
 cli.add_command(traefik.cli, name="traefik")
 cli.add_command(cert_manager.cli, name="certmanager")
-cli.add_command(metrics.cli, name="metrics")
+cli.add_command(monitoring.cli, name="monitoring")
