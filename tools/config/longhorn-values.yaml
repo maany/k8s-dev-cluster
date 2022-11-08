@@ -20,7 +20,7 @@ global:
       # Recognize toleration and node selector for Longhorn run-time created components
       defaultSetting:
         taintToleration: cattle.io/os=linux:NoSchedule
-        systemManagedComponentsNodeSelector: role:storage
+        systemManagedComponentsNodeSelector: k8s.prada.io/role:storage
 
 image:
   longhorn:
