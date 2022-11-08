@@ -95,7 +95,12 @@ After running the command, use `k9s` to monitor the pods in the `longhorn-system
 k8s_admin_setup_utils  longhorn watch
 ```
 
-Once everything has stabilized, we can proceed to the next steps
+Once everything has stabilized, you should see a `storageclass` by running
+```
+kubectl get sc
+NAME                 PROVISIONER          RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+longhorn (default)   driver.longhorn.io   Delete          Immediate           true                   3m41s
+```
 
 ## Install Metallb
 
