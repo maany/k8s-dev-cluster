@@ -20,9 +20,9 @@ $$/       $$/   $$/ $$/   $$/ $$$$$$$/  $$/   $$/       $$/   $$/  $$$$$$/  $$$$
 ## What this does?
 This vagrant file can spin up the following types of VMs
 1. master: K8s Control Plane
-2. worker: Run business workloads
-3. storage: Tainted to run Longhorn
-4. infra: Tainted to run in-cluster utilities like Metallb, CertManager, Traefik, ...
+2. worker: Run business workloads ( taint `k8s.prada.io/workload=app:NoSchedule`)
+3. storage: runs Longhorn
+4. infra: runs in-cluster utilities like Metallb, CertManager, Traefik, Longhorn, ...
 
 You can modify the number of each type of VMs (except master) that you would like to bring up.
 
