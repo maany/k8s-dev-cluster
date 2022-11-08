@@ -90,7 +90,7 @@ def uninstall(ctx):
 
 @cli.command()
 @click.pass_obj
-def watch_events(ctx):
+def watch(ctx):
     """
     Watch MetalLB events
     """
