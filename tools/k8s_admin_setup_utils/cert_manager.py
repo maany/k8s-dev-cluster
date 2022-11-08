@@ -4,7 +4,9 @@ from pathlib import Path
 import click
 
 from api.core.run_context import kube_proxy
-from api.cert_manager.cert_manager import InstallCertManagerHelmChart, WatchCertManagerEvents, CreateClusterIssuer, CreateCertificate, WatchChallenges
+from api.cert_manager.cert_manager import (InstallCertManagerHelmChart, CreateClusterIssuer,
+                                           CreateCertificate, BackupCertManager, RestoreCertManager,
+                                           )
 
 
 certmanager_values_default_path = Path(
@@ -79,7 +81,7 @@ def cluster_issuer(ctx, email, domain, cloudflare_api_token, letsencrypt_environ
 @click.pass_obj
 def certificate(ctx, email, domain, letsencrypt_environment, namespace, local):
     """
-    Create Certificate for Ingress
+    Create Certificate
     """
     with kube_proxy(ctx.kubeconfig) as k:
         CreateCertificate(
@@ -93,25 +95,32 @@ def certificate(ctx, email, domain, letsencrypt_environment, namespace, local):
 
 
 @cli.command()
+@click.option("--dir", type=click.Path(exists=True), default=Path.home() / "cert-manager.backup", help="Directory where to save the certificate and secrets")
+@click.option("--letsencrypt-environment", "-e", required=True, type=click.Choice(['staging', 'production']), help="Let's Encrypt Environment. For example: staging or production")
+@click.option("--certificate-namespace", "-n", default="default", help="Namespace where Certificate is deployed")
 @click.pass_obj
-def watch(ctx):
+def backup(ctx, dir, letsencrypt_environment, certificate_namespace):
     """
-    Watch CertManager Events
+    Backup Cert Manager
     """
     with kube_proxy(ctx.kubeconfig) as k:
-        WatchCertManagerEvents(
+        BackupCertManager(
             kubeconfig=ctx.kubeconfig,
+            backup_dir=dir,
+            letsencrypt_environment=letsencrypt_environment,
+            certificate_namespace=certificate_namespace
         ).run()
 
+
 @cli.command()
-@click.option("--namespace", "-n", default="default", help="Namespace where ingress is or will be deployed")
+@click.option("--dir", type=click.Path(exists=True), default=Path.home() / "cert-manager.backup", help="Directory where backup is saved")
 @click.pass_obj
-def watch_challenges(ctx, namespace):
+def restore(ctx, dir):
     """
-    Watch Certificates Challenges
+    Restore Cert Manager
     """
     with kube_proxy(ctx.kubeconfig) as k:
-        WatchChallenges(
+        RestoreCertManager(
             kubeconfig=ctx.kubeconfig,
-            namespace=namespace
+            backup_dir=dir
         ).run()
