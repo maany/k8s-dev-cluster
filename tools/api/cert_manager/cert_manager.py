@@ -338,3 +338,59 @@ class RestoreCertManager(BaseConfiguration):
                 "kubectl",
                 "apply", "-f", f.name
             ], log_prefix=log_prefix)
+
+
+class UninstallCertManagerHelmChart(BaseConfiguration):
+    def __init__(self, kubeconfig: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.steps = [
+            self.uninstall_cert_manager_helm_chart,
+        ]
+
+    def uninstall_cert_manager_helm_chart(self, log_prefix: str):
+        self.log(log_prefix, colored(f"Uninstalling cert-manager Helm chart", "green"))
+        self.run_process([
+            "helm", "uninstall", "cert-manager",
+            "-n", "cert-manager"
+        ], log_prefix=log_prefix)
+
+
+class DeleteCertManagerNamespace(BaseConfiguration):
+    def __init__(self, kubeconfig: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.steps = [
+            self.uninstall_cert_manager_namespace,
+        ]
+
+    def uninstall_cert_manager_namespace(self, log_prefix: str):
+        self.log(log_prefix, colored(f"Uninstalling cert-manager namespace", "green"))
+        self.run_process([
+            "kubectl", "delete", "namespace", "cert-manager"
+        ], log_prefix=log_prefix)
+
+
+class UninstallCertificateAndX509Secret(BaseConfiguration):
+    def __init__(self, kubeconfig: str, certificate_namespace: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.certificate_namespace = certificate_namespace
+        self.steps = [
+            self.uninstall_certificate,
+            self.delete_x509_secret,
+        ]
+
+    def uninstall_certificate(self, log_prefix: str):
+        self.log(log_prefix, colored(f"Uninstalling Certificate", "green"))
+        self.run_process([
+            "kubectl", "-n", self.certificate_namespace,
+            "delete", "certificate", "--all"
+        ], log_prefix=log_prefix)
+
+    def delete_x509_secret(self, log_prefix: str):
+        self.log(log_prefix, colored(f"Deleting x509 Secret", "green"))
+        self.run_process([
+            "kubectl", "-n", self.certificate_namespace,
+            "delete", "secret", "--field-selector", "type=kubernetes.io/tls"
+        ], log_prefix=log_prefix)

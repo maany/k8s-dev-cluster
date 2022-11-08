@@ -6,6 +6,7 @@ import click
 from api.core.run_context import kube_proxy
 from api.cert_manager.cert_manager import (InstallCertManagerHelmChart, CreateClusterIssuer,
                                            CreateCertificate, BackupCertManager, RestoreCertManager,
+                                           DeleteCertManagerNamespace, UninstallCertificateAndX509Secret, UninstallCertManagerHelmChart
                                            )
 
 
@@ -123,4 +124,47 @@ def restore(ctx, dir):
         RestoreCertManager(
             kubeconfig=ctx.kubeconfig,
             backup_dir=dir
+        ).run()
+
+@cli.group()
+@click.pass_obj
+def uninstall(ctx):
+    """
+    Uninstall Cert Manager
+    """
+    pass
+
+@uninstall.command()
+@click.pass_obj
+def helm_chart(ctx):
+    """
+    Uninstall Cert Manager Helm Chart
+    """
+    with kube_proxy(ctx.kubeconfig) as k:
+        UninstallCertManagerHelmChart(
+            kubeconfig=ctx.kubeconfig
+        ).run()
+
+@uninstall.command()
+@click.pass_obj
+def namespace(ctx):
+    """
+    Delete Cert Manager Namespace
+    """
+    with kube_proxy(ctx.kubeconfig) as k:
+        DeleteCertManagerNamespace(
+            kubeconfig=ctx.kubeconfig
+        ).run()
+
+@uninstall.command()
+@click.option("--namespace", default="default", help="Namespace where certificate objects are deployed")
+@click.pass_obj
+def certificate(ctx, namespace):
+    """
+    Uninstall Certificate
+    """
+    with kube_proxy(ctx.kubeconfig) as k:
+        UninstallCertificateAndX509Secret(
+            kubeconfig=ctx.kubeconfig,
+            certificate_namespace=namespace,
         ).run()
