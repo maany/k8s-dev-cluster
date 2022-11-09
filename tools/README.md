@@ -102,6 +102,50 @@ NAME                 PROVISIONER          RECLAIMPOLICY   VOLUMEBINDINGMODE   AL
 longhorn (default)   driver.longhorn.io   Delete          Immediate           true                   3m41s
 ```
 
+## Install Kube Prometheus Stack
+To enable cluster monitoring, run
+
+```
+k8s_admin_setup_utils monitoring install --help
+
+ _______   _______    ______   _______    ______         __         ______            
+/       \ /       \  /      \ /       \  /      \       /  |       /      \           
+$$$$$$$  |$$$$$$$  |/$$$$$$  |$$$$$$$  |/$$$$$$  |      $$ |   __ /$$$$$$  |  _______ 
+$$ |__$$ |$$ |__$$ |$$ |__$$ |$$ |  $$ |$$ |__$$ |      $$ |  /  |$$ \__$$ | /       |
+$$    $$/ $$    $$< $$    $$ |$$ |  $$ |$$    $$ |      $$ |_/$$/ $$    $$< /$$$$$$$/ 
+$$$$$$$/  $$$$$$$  |$$$$$$$$ |$$ |  $$ |$$$$$$$$ |      $$   $$<   $$$$$$  |$$      \ 
+$$ |      $$ |  $$ |$$ |  $$ |$$ |__$$ |$$ |  $$ |      $$$$$$  \ $$ \__$$ | $$$$$$  |
+$$ |      $$ |  $$ |$$ |  $$ |$$    $$/ $$ |  $$ |      $$ | $$  |$$    $$/ /     $$/ 
+$$/       $$/   $$/ $$/   $$/ $$$$$$$/  $$/   $$/       $$/   $$/  $$$$$$/  $$$$$$$/ 
+
+
+Usage: k8s_admin_setup_utils monitoring install [OPTIONS]
+
+  Install Kube Prometheus Stack
+
+Options:
+  --kube-prometheus-values, --values PATH
+                                  Path to Kube Prometheus Stack Helm values
+                                  file
+  --control-plane-nodes, --control-plane IPV4 ADDRESS
+                                  Control Plane Node Names  [required]
+  -u, --grafana-user TEXT         Grafana User Name
+  -p, --grafana-password TEXT     Grafana Password
+  --help                          Show this message and exit.
+```
+
+You can specify the `username` and `password` for `grafana` via the CLI.
+Please also specify the IPv4 address of the master node ( 172.16.16.10 ) to update the `endpoints` for etcd, kube-controller-manager, kube-scheduler and kube-api-server.
+
+```
+k8s_admin_setup_utils monitoring install -u admin --control-plane-nodes 172.16.16.10
+```
+You will be prompted to enter a password, which will be used to create a secret in step 2 of the 3 steps executed by this command:
+1. create_namespace,
+1. create_grafana_secret,
+1. install_helm_repo
+
+Once installation completes, you will start seeing metrics in `Lens`.
 
 ## Install Metallb
 
@@ -160,6 +204,33 @@ k8s_admin_setup_utils metallb watch
 
 Once the events stabilise and all pods are up in the metallb namespace, the installation is complete.
 
+## Install Traefik
+
+Install the helm chart
+
+```
+k8s_admin_setup_utils traefik install helm-chart
+```
+
+Install the default headers for http middleware
+
+```
+k8s_admin_setup_utils traefik install default-headers
+```
+
+Next, we need to create a `dashboard_secret`, `basic_auth_middleware` that references to this secret and a `IngressRoute` that defines the HostName that points to the traefik dashboard.
+
+The list of steps is:
+1. install_traefik_dashboard_secret,
+1. install_traefik_dashboard_basic_auth_middleware,
+1. install_traefik_dashboard_ingress_route,
+1. add_dashboard_hostname_to_hosts_file,
+
+**NOTE** the `/et/hosts` file on your machine will be modified
+
+```
+k8s_admin_setup_utils traefik install dashboard -h devmaany.com
+```
 
 ## Configure Longhorn backups
 
