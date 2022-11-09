@@ -47,11 +47,11 @@ prometheus:
 
   # the service account used by prometheus
   # required when " .Values.prometheus.rbacPrometheus == true " and " .Values.prometheus.podMonitor.enabled=true or prometheus.serviceMonitor.enabled=true "
-  serviceAccount: ""
+  serviceAccount: "monitoring-kube-prometheus-prometheus"
 
   # the namespace where prometheus is deployed
   # required when " .Values.prometheus.rbacPrometheus == true " and " .Values.prometheus.podMonitor.enabled=true or prometheus.serviceMonitor.enabled=true "
-  namespace: ""
+  namespace: "monitoring"
 
   # the image to be used for the kuberbacproxy container
   rbacProxy:
@@ -61,7 +61,7 @@ prometheus:
   # Prometheus Operator PodMonitors
   podMonitor:
     # enable support for Prometheus Operator
-    enabled: false
+    enabled: true
 
     # optional additionnal labels for podMonitors
     additionalLabels: {}
@@ -94,7 +94,7 @@ prometheus:
   # to podMonitor, supports secure metrics.
   serviceMonitor:
     # enable support for Prometheus Operator
-    enabled: false
+    enabled: true
 
     speaker:
       # optional additional labels for the speaker serviceMonitor

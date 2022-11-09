@@ -157,25 +157,32 @@ The following steps are performed during the installation
 1. install_metallb_helm_chart,
 1. add_namespace_labels,
 
+There is a bug in the metallb helm charts, for which I have a pending PR
+https://github.com/metallb/metallb/issues/1694 
+
+If the PR is merged, you can use the command below to go through metallb installation
+
 ```
 k8s_admin_setup_utils metallb install helm-chart
 ```
 
-After this, we need to configure MetalLb by creating `L2Advertisement` and `IPAddressPool` Custom Resources
+Otherwise, you need to install metallb manually. Assumin you are in the root folder of this repo,
+
+```
+git clone https://github.com/maany/metallb 
+cd metallb/charts/metallb
+helm install metallb . --create-namespace -n metallb-system --values ../../../tools/config/metallb-values.yaml
+kubectl label namespace metallb-system pod-security.kubernetes.io/enforce=privileged pod-security.kubernetes.io/audit=privileged pod-security.kubernetes.io/warn=privileged
+cd ../../../
+rm -rf metallb
+```
+
+Wait for the Metallb Controller and Speaker Pods to become available
+
+Once the pods are available, we need to configure MetalLb by creating `L2Advertisement` and `IPAddressPool` Custom Resources
 
 ```
 k8s_admin_setup_utils metallb install custom-resources --help
-
- _______   _______    ______   _______    ______         __         ______            
-/       \ /       \  /      \ /       \  /      \       /  |       /      \           
-$$$$$$$  |$$$$$$$  |/$$$$$$  |$$$$$$$  |/$$$$$$  |      $$ |   __ /$$$$$$  |  _______ 
-$$ |__$$ |$$ |__$$ |$$ |__$$ |$$ |  $$ |$$ |__$$ |      $$ |  /  |$$ \__$$ | /       |
-$$    $$/ $$    $$< $$    $$ |$$ |  $$ |$$    $$ |      $$ |_/$$/ $$    $$< /$$$$$$$/ 
-$$$$$$$/  $$$$$$$  |$$$$$$$$ |$$ |  $$ |$$$$$$$$ |      $$   $$<   $$$$$$  |$$      \ 
-$$ |      $$ |  $$ |$$ |  $$ |$$ |__$$ |$$ |  $$ |      $$$$$$  \ $$ \__$$ | $$$$$$  |
-$$ |      $$ |  $$ |$$ |  $$ |$$    $$/ $$ |  $$ |      $$ | $$  |$$    $$/ /     $$/ 
-$$/       $$/   $$/ $$/   $$/ $$$$$$$/  $$/   $$/       $$/   $$/  $$$$$$/  $$$$$$$/ 
-
 
 Usage: k8s_admin_setup_utils metallb install custom-resources 
            [OPTIONS]
