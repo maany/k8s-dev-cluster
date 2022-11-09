@@ -83,7 +83,7 @@ k8s_admin_setup_utils dev-cluster reload
 Now metrics should start showing up in `k9s` or `Lens`
 
 ## Install LongHorn
-We use Longhorn for provisioning PersistentVolumes within the cluster. The `storage` nodes have a label `role: storage` and that's where all the Longhorn reources will be provisioned.
+We use Longhorn for provisioning PersistentVolumes within the cluster. The `storage` nodes have a label `k8s.prada.io/role: storage` and that's where most of the longhorn reources will be provisioned.
 
 ```
 k8s_admin_setup_utils longhorn install
@@ -101,6 +101,7 @@ kubectl get sc
 NAME                 PROVISIONER          RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 longhorn (default)   driver.longhorn.io   Delete          Immediate           true                   3m41s
 ```
+
 
 ## Install Metallb
 
@@ -158,3 +159,8 @@ k8s_admin_setup_utils metallb watch
 ```
 
 Once the events stabilise and all pods are up in the metallb namespace, the installation is complete.
+
+
+## Configure Longhorn backups
+
+## Configure Exposing to Internet

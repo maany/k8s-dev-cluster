@@ -14,5 +14,5 @@ sudo chown 1000:1000 /home/vagrant/.kube/config
 NODENAME=$(hostname -s)
 kubectl label node $(hostname -s) node-role.kubernetes.io/worker=worker
 kubectl label node $(hostname -s) k8s.prada.io/role=worker
-kubectl taint nodes $(hostname -s) k8s.prada.io/workload=app:NoSchedule-
+kubectl taint nodes $(hostname -s) k8s.prada.io/workload=app:NoSchedule
 EOF
