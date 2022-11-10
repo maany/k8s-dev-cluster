@@ -5,7 +5,7 @@ import click
 
 from api.traefik.traefik import (
     InstallTraefikHelmChart, InstallTraefikDefaultHeaders, InstallTraefikDashboard,
-    WatchTraefikEvents, GetTraefikLoadBalancerIP,
+    WatchTraefikEvents, GetTraefikLoadBalancerIP, InstallDefaultTLSStore, UninstallDefultTLSStore,
     UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders, UninstallTraefikNamespace
 )
 from api.core.run_context import kube_proxy
@@ -89,6 +89,21 @@ def dashboard(ctx, username, password, hostname):
             hostname=hostname
         ).run()
 
+
+@install.command()
+@click.option("--cert-secret-name", "-c", required=True, help="Secret Name for TLS Certifacte fetched by cert-manager")
+@click.pass_obj
+def default_tls_store(ctx, cert_secret_name):
+    """
+    Create a default TLS Store for Traefik
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        InstallDefaultTLSStore(
+            kubeconfig=ctx.kubeconfig,
+            cert_secret_name=cert_secret_name,
+        ).run()
+
+
 @cli.command()
 @click.pass_obj
 def watch(ctx):
@@ -141,7 +156,7 @@ def helm_chart(ctx):
 @click.pass_obj
 def default_headers(ctx, traefik_default_headers):
     """
-    Uninstall Traefik default_headerss
+    Uninstall Traefik default_headers
     """
     with kube_proxy(kubeconfig=ctx.kubeconfig):
         UninstallTraefikDefaultHeaders(
@@ -157,5 +172,16 @@ def namespace(ctx):
     """
     with kube_proxy(kubeconfig=ctx.kubeconfig):
         UninstallTraefikNamespace(
+            kubeconfig=ctx.kubeconfig
+        ).run()
+
+@uninstall.command()
+@click.pass_obj
+def default_tls_store(ctx):
+    """
+    Uninstall Default TLS Store
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        UninstallDefultTLSStore(
             kubeconfig=ctx.kubeconfig
         ).run()

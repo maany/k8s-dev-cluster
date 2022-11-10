@@ -2,6 +2,7 @@ import logging
 import base64
 import tempfile
 import json
+import sys
 
 from passlib.hash import apr_md5_crypt
 from termcolor import colored
@@ -220,6 +221,50 @@ class InstallTraefikDashboard(BaseConfiguration):
             ])
         hosts.write()
 
+
+class InstallDefaultTLSStore(BaseConfiguration):
+    def __init__(self, kubeconfig: str, cert_secret_name: str):
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.cert_secret_name = cert_secret_name
+
+        self.default_tls_store = {
+            "apiVersion": "traefik.containo.us/v1alpha1",
+            "kind": "TLSStore",
+            "metadata": {
+                "name": "default",
+                "namespace": "default"
+            },
+            "spec": {
+                "defaultCertificate": {
+                    "secretName": self.cert_secret_name,
+                }
+            }
+        }
+        self.steps = [
+            self.create_default_tls_store,
+        ]
+
+    def create_default_tls_store(self, log_prefix: str):
+        # check if secret exists
+        existing_secrets = self.v1.list_namespaced_secret(namespace="default")
+        if self.cert_secret_name not in [x.metadata.name for x in existing_secrets.items]:
+            self.log(log_prefix, colored(f"Secret {self.cert_secret_name} does not exist in namespace {self.cert_secret_namespace}", "red"), logging.INFO)
+            self.log(log_prefix, colored(f"Please create it by using certmanager commands"), logging.INFO)
+            sys.exit(1)
+        
+        self.log(log_prefix, colored(f"Creating default TLS store", "blue"), logging.INFO)
+        self.log(log_prefix, f"TLSStore: {json.dumps(self.default_tls_store, indent=4)}", logging.INFO)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            tmp.write(json.dumps(self.default_tls_store, indent=4))
+            tmp.close()
+            self.run_process([
+                "kubectl", "apply", "-f", tmp.name,
+            ],
+                log_prefix=log_prefix
+            )
+
+
 class WatchTraefikEvents(BaseConfiguration):
     def __init__(self, kubeconfig: str):
         super().__init__()
@@ -308,6 +353,24 @@ class UninstallTraefikNamespace(BaseConfiguration):
             "Uninstalling Traefik namespace", "blue"), logging.INFO)
         self.run_process([
             "kubectl", "delete", "namespace", "traefik",
+        ],
+            log_prefix=log_prefix
+        )
+
+class UninstallDefultTLSStore(BaseConfiguration):
+    def __init__(self, kubeconfig: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+
+        self.steps = [
+            self.uninstall_default_tls_store,
+        ]
+
+    def uninstall_default_tls_store(self, log_prefix: str):
+        self.log(log_prefix, colored(
+            "Uninstalling default TLS store", "blue"), logging.INFO)
+        self.run_process([
+            "kubectl", "delete", "tlsstore", "default", "-n", "default",
         ],
             log_prefix=log_prefix
         )

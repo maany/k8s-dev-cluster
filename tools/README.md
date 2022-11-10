@@ -225,7 +225,7 @@ Install the default headers for http middleware
 k8s_admin_setup_utils traefik install default-headers
 ```
 
-Next, we need to create a `dashboard_secret`, `basic_auth_middleware` that references to this secret and a `IngressRoute` that defines the HostName that points to the traefik dashboard.
+Next, we need to create a `dashboard_secret`, `basic_auth_middleware` that references to this secret and a `IngressRoute` that defines the HostName that would resolve to the traefik dashboard. The `IngressRoute` will also apply the `basic_auth_middleware` to the traefik dashboard. The `ingress controller` will register this ingress route.
 
 The list of steps is:
 1. install_traefik_dashboard_secret,
@@ -233,12 +233,130 @@ The list of steps is:
 1. install_traefik_dashboard_ingress_route,
 1. add_dashboard_hostname_to_hosts_file,
 
-**NOTE** the `/et/hosts` file on your machine will be modified
+**NOTE** the `/etc/hosts` file on your machine will be modified
 
 ```
-k8s_admin_setup_utils traefik install dashboard -h devmaany.com
+k8s_admin_setup_utils traefik install dashboard -h traefik.devmaany.com -u maany
 ```
+
+At this point, you can visit the `Traefik Dashboard` at the IP address to which TraefikService has been exposed to. You can find out the IP by running
+
+```
+k8s_admin_setup_utils traefik loadbalancer-ip
+```
+
+You can also access the dashboard by visitng the `hostname` specified during the install command.
+
+## Install CertManager
+
+If you visit the traefik dashboard, you will see that the certificate common name is "TRAEFIK DEFAULT CERT". Let's change that
+
+Install the cert-manager helm chart by running
+
+```
+k8s_admin_setup_utils certmanager install helm-chart
+```
+
+### I have a backup of my certificates from a previous cluster
+
+To restore your certificates, clusterissuer and secrets, run 
+
+```
+k8s_admin_setup_utils certmanager restore --dir /path/to/certmanager/backup
+```
+
+and then make sure that you have configured the restored secret `letsencrypt-production` or `letsencrypt-staging` and the `Certificate` resource in the `TLSStore` resource for `Traefik`
+
+
+
+### I want to issue new certificates
+
+We need to define `ClusterIssuer` and `Certificate` custom resources.
+
+The `ClusterIssues` is a k8s wrapper around a Certificate Authority, which in our case is letsencrypt. 
+
+The `ClusterIssuer` will use a `DNS-01` ACME Challenge to verify that you own the domain for which the certificate is being requested. Since the domain is managed by Cloudflare, the verification i.e. solving the ACME challenge can be automated. For this, we need to authorize the solver to be able to access information in our Cloudflare account and validate that we own the domain.
+
+For the successful competion of ACME challenges we need to provide the an Access Token from Cloudflare.
+
+To create a new token, login to your Cloudflare dashboard and
+
+```
+- Select Domain
+- Click `Get your API token` link
+- Click `Create Token`
+- Click `Use Template` next to `Edit Zone DNS`
+- In `Permissions` select the following
+    - `Zone` - `DNS` - `Edit`
+    - `Zone` - `Zone` - `Read`
+- In `Zone Resources` select `All Zones`
+- Enter a `Start Date` and `End Date`
+- Click `Contine to summary`
+
+- Review the details
+- Click `Create Token`
+- Click the `Copy` button to get your token and confirm it is working using the `curl` command provided on that screen,
+```
+
+Once you have the token, run the following command to 
+1. create a secret that will store your cloudflare token
+2. create a ClusterIssuer resource that will point to letsencrypt and also store information related to our Cloudflare account, which will be used to solve the DNS01 Challenges.
+
+**NOTE** For testing backup and restore, use the staging environment
+
+```
+k8s_admin_setup_utils certmanager install cluster-issuer \
+  --email imptodefeat@gmail.com
+  --cloudflare-api-token <your_cloudflare_token> \
+  --domain devmaany.com
+  --letsencrypt-environment staging
+```
+
+Now we can create a `Certificate` resource. This resource will trigger the ACME challenge and solve the DNS01 challenge with the configured Cloudflare credentials. 
+
+Once complete successfully, it will create a secret called `*-tls` in the specified namespace. This secret will contain `tls.key` and `tls.cert` keys which are the actual x509 certificates that will be used by the web services.
+
+```
+k8s_admin_setup_utils certmanager install certificate --namespace default --email imptodefeat@gmail.com --domain devmaany.com --letsencrypt-environment staging 
+```
+To monitor the progress and status, you can use k8s or Lens to:
+1. Watch the `cert-manager` namespace for logs in the `Pods`
+2. Watch the `kubectl get challenges` command in the namespace where the Certificate will be created
+3. Watch the `kubectl get certificate` command in the namespace where the Certificate will be created
+
+
+Verify that the certificate has been issued by running
+
+```
+kubectl get secret
+```
+
+
+### Backup letsencrypt certificates
+In order to backup the certificates, clusterissuer and secrets, run 
+
+```
+k8s_admin_setup_utils certmanager backup -e staging --dir /path/to/certmanager/backup -n default
+```
+
+
+## Configure default certificate for traefik
+
+Get the secret name for the certificate that was created in the previous step. Its name ends with `-tls`
+
+```
+kubectl get secret -n default
+```
+
+Then create a default tls store for traefik using that secret name
+
+```
+k8s_admin_setup_utils traefik install default-tls-store --cert-secret-name <secret-name>
+```
+
+## Expose services and dashboards
 
 ## Configure Longhorn backups
+
 
 ## Configure Exposing to Internet
