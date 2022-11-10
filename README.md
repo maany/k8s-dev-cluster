@@ -87,5 +87,5 @@ vagrant up
 vagrant destroy -f
 ```
 
-## Further configutation with the CLI
+## Further configuration with the CLI
 To provision the cluster with Metallb, Longhorn, Kube Prometheus Stack, Traefik, Certmanager, .. please follow the instructions [here](./tools/README.md)
