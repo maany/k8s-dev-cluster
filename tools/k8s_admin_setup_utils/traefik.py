@@ -6,7 +6,8 @@ import click
 from api.traefik.traefik import (
     InstallTraefikHelmChart, InstallTraefikDefaultHeaders, InstallTraefikDashboard,
     WatchTraefikEvents, GetTraefikLoadBalancerIP, InstallDefaultTLSStore, UninstallDefultTLSStore,
-    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders, UninstallTraefikNamespace
+    UninstallTraefikHelmChart, UninstallTraefikDefaultHeaders, UninstallTraefikNamespace,
+    CreateIngressRoute
 )
 from api.core.run_context import kube_proxy
 
@@ -184,4 +185,20 @@ def default_tls_store(ctx):
     with kube_proxy(kubeconfig=ctx.kubeconfig):
         UninstallDefultTLSStore(
             kubeconfig=ctx.kubeconfig
+        ).run()
+
+
+@cli.command()
+@click.option("--service", "-s", required=True, multiple=True ,help="Service to expose in the format {namespace}/{service_name}:{port}")
+@click.option("--domain", required=True, help="Domain for TLS Cert. Ex: devmaany.com")
+@click.pass_obj
+def create_ingress_routes(ctx, service, domain):
+    """
+    Create IngressRoute for a Service
+    """
+    with kube_proxy(kubeconfig=ctx.kubeconfig):
+        CreateIngressRoute(
+            kubeconfig=ctx.kubeconfig,
+            services=service,
+            domain=domain
         ).run()

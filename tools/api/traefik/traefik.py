@@ -3,6 +3,9 @@ import base64
 import tempfile
 import json
 import sys
+import re
+import typing
+
 
 from passlib.hash import apr_md5_crypt
 from termcolor import colored
@@ -374,3 +377,95 @@ class UninstallDefultTLSStore(BaseConfiguration):
         ],
             log_prefix=log_prefix
         )
+
+
+class CreateIngressRoute(BaseConfiguration):
+    def __init__(self, kubeconfig: str, services: typing.List[str], domain: str) -> None:
+        super().__init__()
+        self.kubeconfig = kubeconfig
+        self.services = services
+        self.domain = domain
+        
+        self.steps = [
+            self.create_ingress_routes,
+        ]
+
+    def get_ingress_route(self, service: str, port: str, namespace: str):
+        ingress_route_name = f"{service}-ingress-route"
+        
+        ingress_route = {
+            "apiVersion": "traefik.containo.us/v1alpha1",
+            "kind": "IngressRoute",
+            "metadata": {
+                "name": ingress_route_name,
+                "namespace": namespace,
+                "annotations": {
+                    "kubernetes.io/ingress.class": "traefik-external"
+                }
+            },
+            "spec": {
+                "entryPoints": [
+                    "websecure"
+                ],
+                "routes": [
+                    {
+                        "match": f"Host(`{service}.{self.domain}`)",
+                        "kind": "Rule",
+                        "services": [
+                            {
+                                "name": service,
+                                "port": port,
+                            }
+                        ],
+                        "middlewares": [
+                            {
+                                "name": "default-headers"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        return ingress_route_name, ingress_route
+
+
+    def create_ingress_route(self, log_prefix: str, service: str, port: str, namespace: str):
+        ingress_route_name, ingress_route = self.get_ingress_route(service, port, namespace)
+
+        self.log(log_prefix, colored(
+            f"Creating IngressRoute {ingress_route_name}", "blue"), logging.INFO)
+
+        self.log(log_prefix, f"IngressRoute: {ingress_route}", logging.INFO)
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            f.write(json.dumps(ingress_route, indent=4))
+            f.flush()
+            self.run_process([
+                "kubectl", "apply", "-f", f.name, "-n", "traefik"
+            ],
+                log_prefix=log_prefix
+            )
+            self.log(log_prefix, colored(f"Ingress Route {ingress_route_name} created", "green"), logging.INFO)
+            
+    def create_ingress_routes(self, log_prefix: str):
+        dns_entries = []
+        for service in self.services:
+            # match regular expression namespace/service:port
+            match = re.match(r"^(?P<namespace>[a-z0-9-]+)/(?P<service>[a-z0-9-]+):(?P<port>[0-9]+)$", service)
+            namespace = match.group("namespace")
+            service_name = match.group("service")
+            port = match.group("port")
+            
+            self.log(log_prefix, colored(f"{namespace}, {service_name}, {port}", "cyan"), logging.INFO)
+            self.create_ingress_route(log_prefix, service_name, port, namespace)
+            dns_entries.append(f"{service_name}.{self.domain}")
+        
+        self.log(log_prefix, colored(
+            "Getting Traefik LoadBalancer IP", "blue"), logging.INFO)
+        rcode, lb_ip, err = self.run_process([
+            "kubectl", "get", "service", "traefik", "-n", "traefik",
+            "-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+        ],
+            log_prefix=log_prefix
+        )
+        self.log(log_prefix, colored(f"Please add following to your DNS/hosts file", "green", "on_yellow"), logging.INFO)
+        self.log(log_prefix, colored(f"{lb_ip.split('')[1:-1]} {' '.join(dns_entries)}", "green", "on_yellow"), logging.INFO)

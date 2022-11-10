@@ -354,8 +354,37 @@ Then create a default tls store for traefik using that secret name
 k8s_admin_setup_utils traefik install default-tls-store --cert-secret-name <secret-name>
 ```
 
-## Expose services and dashboards
+## Expose web services and dashboards
 
+Now we will create IngressRoutes for 
+1. Grafana
+1. Hubble UI (for cilium)
+1. Longhorn Frontend
+
+The command is:
+```
+Usage: k8s_admin_setup_utils traefik create-ingress-routes 
+           [OPTIONS]
+
+  Create IngressRoute for a Service
+
+Options:
+  -s, --service TEXT  Service to expose in the format
+                      {namespace}/{service_name}:{port}  [required]
+  --domain TEXT       Domain for TLS Cert. Ex: devmaany.com  [required]
+  --help              Show this message and exit.
+```
+
+You can run it with the following options
+
+```
+k8s_admin_setup_utils traefik create-ingress-routes \
+  -s monitoring/grafana:80 \
+  -s kube-system/hubble-ui:80 \
+  -s longhorn-system/longhorn-frontend:80 \
+  --domain devmaany.com
+```
+```
 ## Configure Longhorn backups
 
 
