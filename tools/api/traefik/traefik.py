@@ -390,7 +390,7 @@ class CreateIngressRoute(BaseConfiguration):
             self.create_ingress_routes,
         ]
 
-    def get_ingress_route(self, service: str, port: str, namespace: str):
+    def get_ingress_route(self, service: str, port: str, namespace: str, subdomain: str):
         ingress_route_name = f"{service}-ingress-route"
         
         ingress_route = {
@@ -409,17 +409,12 @@ class CreateIngressRoute(BaseConfiguration):
                 ],
                 "routes": [
                     {
-                        "match": f"Host(`{service}.{self.domain}`)",
+                        "match": f"Host(`{subdomain}.{self.domain}`)",
                         "kind": "Rule",
                         "services": [
                             {
                                 "name": service,
-                                "port": port,
-                            }
-                        ],
-                        "middlewares": [
-                            {
-                                "name": "default-headers"
+                                "port": int(port),
                             }
                         ]
                     }
@@ -429,8 +424,8 @@ class CreateIngressRoute(BaseConfiguration):
         return ingress_route_name, ingress_route
 
 
-    def create_ingress_route(self, log_prefix: str, service: str, port: str, namespace: str):
-        ingress_route_name, ingress_route = self.get_ingress_route(service, port, namespace)
+    def create_ingress_route(self, log_prefix: str, service: str, port: str, namespace: str, subdomain: str):
+        ingress_route_name, ingress_route = self.get_ingress_route(service, port, namespace, subdomain)
 
         self.log(log_prefix, colored(
             f"Creating IngressRoute {ingress_route_name}", "blue"), logging.INFO)
@@ -440,7 +435,7 @@ class CreateIngressRoute(BaseConfiguration):
             f.write(json.dumps(ingress_route, indent=4))
             f.flush()
             self.run_process([
-                "kubectl", "apply", "-f", f.name, "-n", "traefik"
+                "kubectl", "apply", "-f", f.name
             ],
                 log_prefix=log_prefix
             )
@@ -449,15 +444,16 @@ class CreateIngressRoute(BaseConfiguration):
     def create_ingress_routes(self, log_prefix: str):
         dns_entries = []
         for service in self.services:
-            # match regular expression namespace/service:port
-            match = re.match(r"^(?P<namespace>[a-z0-9-]+)/(?P<service>[a-z0-9-]+):(?P<port>[0-9]+)$", service)
+            # match regular expression namespace/service:port/subdomain
+            match = re.match(r"^(?P<namespace>[a-z0-9-]+)/(?P<service>[a-z0-9-]+):(?P<port>[0-9]+)(/(?P<subdomain>[a-z0-9-]+))?$", service)
             namespace = match.group("namespace")
             service_name = match.group("service")
+            subdomain = match.group("subdomain")
             port = match.group("port")
             
-            self.log(log_prefix, colored(f"{namespace}, {service_name}, {port}", "cyan"), logging.INFO)
-            self.create_ingress_route(log_prefix, service_name, port, namespace)
-            dns_entries.append(f"{service_name}.{self.domain}")
+            self.log(log_prefix, colored(f"{namespace}, {service_name}, {port}, {subdomain}", "cyan"), logging.INFO)
+            self.create_ingress_route(log_prefix, service_name, port, namespace, subdomain)
+            dns_entries.append(f"{subdomain}.{self.domain}")
         
         self.log(log_prefix, colored(
             "Getting Traefik LoadBalancer IP", "blue"), logging.INFO)
@@ -468,4 +464,4 @@ class CreateIngressRoute(BaseConfiguration):
             log_prefix=log_prefix
         )
         self.log(log_prefix, colored(f"Please add following to your DNS/hosts file", "green", "on_yellow"), logging.INFO)
-        self.log(log_prefix, colored(f"{lb_ip.split('')[1:-1]} {' '.join(dns_entries)}", "green", "on_yellow"), logging.INFO)
+        self.log(log_prefix, colored(f"{lb_ip[1:-1]} {' '.join(dns_entries)}", "green", "on_yellow"), logging.INFO)

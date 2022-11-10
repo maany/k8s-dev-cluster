@@ -327,12 +327,14 @@ To monitor the progress and status, you can use k8s or Lens to:
 
 Verify that the certificate has been issued by running
 
-```
-kubectl get secret
-```
 
+### I have a backup of my certificates from a previous cluster
 
-### Backup letsencrypt certificates
+To restore your certificates, clusterissuer and secrets, run 
+
+```
+k8s_admin_setup_utils certmanager restore --dir /path/to/certmanager/backup
+```
 In order to backup the certificates, clusterissuer and secrets, run 
 
 ```
@@ -370,7 +372,8 @@ Usage: k8s_admin_setup_utils traefik create-ingress-routes
 
 Options:
   -s, --service TEXT  Service to expose in the format
-                      {namespace}/{service_name}:{port}  [required]
+                      {namespace}/{service_name}:{port}/{subdomain}
+                      [required]
   --domain TEXT       Domain for TLS Cert. Ex: devmaany.com  [required]
   --help              Show this message and exit.
 ```
@@ -379,13 +382,19 @@ You can run it with the following options
 
 ```
 k8s_admin_setup_utils traefik create-ingress-routes \
-  -s monitoring/grafana:80 \
-  -s kube-system/hubble-ui:80 \
-  -s longhorn-system/longhorn-frontend:80 \
+  -s monitoring/monitoring-grafana:80/grafana \
+  -s kube-system/hubble-ui:80/hubble \
+  -s longhorn-system/longhorn-frontend:80/longhorn \
   --domain devmaany.com
 ```
-```
+
+After this, you need to update the DNS records for the subdomains to point to the loadbalancer IP address for traefik. The command will print the loadbalancer IP address for traefik after the installation is complete.
+
+
 ## Configure Longhorn backups
 
+Longhorn supports backups to S3 compatible storage and also to NFS. We will use NFS for this and back up the PersistentVolumes on the NAS.
 
 ## Configure Exposing to Internet
+
+For later

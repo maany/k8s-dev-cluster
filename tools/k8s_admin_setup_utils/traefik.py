@@ -189,7 +189,7 @@ def default_tls_store(ctx):
 
 
 @cli.command()
-@click.option("--service", "-s", required=True, multiple=True ,help="Service to expose in the format {namespace}/{service_name}:{port}")
+@click.option("--service", "-s", required=True, multiple=True ,help="Service to expose in the format {namespace}/{service_name}:{port}/{subdomain}")
 @click.option("--domain", required=True, help="Domain for TLS Cert. Ex: devmaany.com")
 @click.pass_obj
 def create_ingress_routes(ctx, service, domain):
