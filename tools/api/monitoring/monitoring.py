@@ -47,7 +47,7 @@ class InstallKubePrometheusStack(BaseConfiguration):
             self.log(log_prefix, colored("Grafana Secret already exists", "yellow"))
             self.log(log_prefix, colored("Deleting existing secret grafana-admin-credentials", "red"))
             self.v1.delete_namespaced_secret(
-                name="grafana-admin-credentials",
+                name="grafana-credentials",
                 namespace="monitoring"
             )
 
@@ -81,7 +81,7 @@ class InstallKubePrometheusStack(BaseConfiguration):
                 "-f", values.name,
                 "--namespace", "monitoring"
             ], log_prefix=log_prefix)
-
+     
 
 class UninstallKubePrometheusStack(BaseConfiguration):
     def __init__(self, kubeconfig: str):
@@ -90,7 +90,8 @@ class UninstallKubePrometheusStack(BaseConfiguration):
 
         self.steps = [
             self.uninstall_helm_repo,
-            self.delete_namespace
+            self.delete_namespace,
+            self.remove_crds
         ]
 
     def uninstall_helm_repo(self, log_prefix: str):
@@ -104,3 +105,20 @@ class UninstallKubePrometheusStack(BaseConfiguration):
         self.run_process([
             "kubectl", "delete", "namespace", "monitoring"
         ], log_prefix=log_prefix)
+
+    def remove_crds(self, log_prefix: str):
+        crds = [
+          "alertmanagerconfigs.monitoring.coreos.com",
+          "alertmanagers.monitoring.coreos.com",
+          "podmonitors.monitoring.coreos.com",
+          "probes.monitoring.coreos.com",
+          "prometheuses.monitoring.coreos.com",
+          "prometheusrules.monitoring.coreos.com",
+          "servicemonitors.monitoring.coreos.com",
+          "thanosrulers.monitoring.coreos.com",
+        ]
+        for crd in crds:
+            self.log(log_prefix, colored(f"Deleting CRD {crd}", "green"))
+            self.run_process([
+                "kubectl", "delete", "crd", crd
+            ], log_prefix=log_prefix)
